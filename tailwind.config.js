@@ -71,23 +71,6 @@ module.exports = {
       }
     },
   },
-  plugins: [
-    // إضافة plugin مخصص للدعم العربي
-    function({ addUtilities }) {
-      const newUtilities = {
-        '.rtl': {
-          direction: 'rtl',
-        },
-        '.ltr': {
-          direction: 'ltr',
-        },
-        '.text-balance': {
-          'text-wrap': 'balance',
-        },
-      }
-      addUtilities(newUtilities)
-    }
-  ],
-  // إعدادات خاصة بالوضع المظلم
+  plugins: [],
   darkMode: 'class',
 }

@@ -9,6 +9,7 @@ global.commentInterval = null;
 global.accountSwitchInterval = null;
 global.isRunning = false;
 global.totalComments = 0;
+global.lastUsedComment = null; // لتجنب التكرار
 
 export async function POST(request) {
   try {
@@ -45,7 +46,7 @@ export async function POST(request) {
     console.log('=================================');
     console.log(`📊 عدد الحسابات: ${accounts.length}`);
     console.log(`🔗 المنشور: ${postUrl}`);
-    console.log(`💬 عدد التعليقات: ${comments.length}`);
+    console.log(`💬 عدد التعليقات المختلفة: ${comments.length}`);
     console.log(`⏰ التوقيت: ${minInterval}-${maxInterval} دقيقة بين التعليقات`);
     console.log(`🔄 تبديل الحساب كل: ${accountSwitchDelay} ثانية`);
     console.log('=================================\n');
@@ -53,6 +54,7 @@ export async function POST(request) {
     global.isRunning = true;
     global.totalComments = 0;
     global.currentBotIndex = 0;
+    global.lastUsedComment = null;
 
     // تسجيل الدخول لجميع الحسابات
     for (let i = 0; i < accounts.length; i++) {
@@ -95,6 +97,34 @@ export async function POST(request) {
     }
 
     console.log(`\n✅ تم تسجيل الدخول لـ ${global.bots.length} حساب بنجاح`);
+    console.log(`📝 التعليقات المتاحة: ${comments.join(' | ')}`);
+
+    // دالة لاختيار تعليق عشوائي مع تجنب التكرار
+    const selectRandomComment = () => {
+      if (comments.length === 1) {
+        return comments[0];
+      }
+
+      // إنشاء قائمة من التعليقات باستثناء آخر تعليق مستخدم
+      let availableComments = comments;
+      if (global.lastUsedComment !== null) {
+        availableComments = comments.filter(c => c !== global.lastUsedComment);
+        
+        // إذا كانت القائمة فارغة (كل التعليقات متطابقة)، استخدم القائمة الأصلية
+        if (availableComments.length === 0) {
+          availableComments = comments;
+        }
+      }
+
+      // اختيار تعليق عشوائي
+      const randomIndex = Math.floor(Math.random() * availableComments.length);
+      const selectedComment = availableComments[randomIndex];
+      
+      // حفظ آخر تعليق مستخدم
+      global.lastUsedComment = selectedComment;
+      
+      return selectedComment;
+    };
 
     // دالة نشر التعليق
     const postComment = async () => {
@@ -111,16 +141,16 @@ export async function POST(request) {
           return;
         }
 
-        // اختيار تعليق عشوائي
-        const randomComment = comments[Math.floor(Math.random() * comments.length)];
+        // اختيار تعليق عشوائي (مع تجنب التكرار)
+        const selectedComment = selectRandomComment();
         
         global.totalComments++;
         console.log(`\n📝 التعليق #${global.totalComments}`);
         console.log(`👤 الحساب: ${currentBot.username}`);
-        console.log(`💭 النص: "${randomComment}"`);
+        console.log(`💭 النص: "${selectedComment}"`);
         
         // نشر التعليق
-        await currentBot.bot.postComment(randomComment);
+        await currentBot.bot.postComment(selectedComment);
         
         currentBot.commentsPosted++;
         console.log(`✅ تم نشر التعليق بنجاح!`);
@@ -227,6 +257,7 @@ async function stopAllBots() {
   global.currentBotIndex = 0;
   global.isRunning = false;
   global.totalComments = 0;
+  global.lastUsedComment = null;
   
   console.log('✅ تم إيقاف جميع البوتات\n');
 }
